@@ -1,0 +1,21 @@
+<?php
+$key = getenv('EMAILCHECKPRO_API_KEY');
+if (!$key) {
+    throw new Exception('Set EMAILCHECKPRO_API_KEY');
+}
+$curl = curl_init('https://emailcheckpro.com/api/v1/bulk-tasks');
+curl_setopt_array($curl, [
+    CURLOPT_POST => true,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_HTTPHEADER => ['X-API-Key: '.$key],
+    CURLOPT_POSTFIELDS => [
+        'product' => 'email_batch',
+        'file' => new CURLFile('emails.txt'),
+    ],
+]);
+$response = curl_exec($curl);
+$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+if ($response === false || $status >= 300) {
+    throw new Exception($response ?: curl_error($curl));
+}
+echo $response, PHP_EOL;

@@ -1,0 +1,25 @@
+# EmailCheckPro Email Bulk Deliverability Check
+> Official examples for the EmailCheckPro bulk product `email_batch`.
+
+## Canonical resources
+- [Product page](https://emailcheckpro.com/products/email_batch): Upload a whole file of addresses, find out which ones can receive mail, and download the result when it finishes.
+- [API documentation](https://emailcheckpro.com/api-docs): Canonical request, response, limit, and error contract.
+- [GitHub repository](https://github.com/emailcheckpro/email-bulk-deliverability-api): Official multi-language examples and OpenAPI contract.
+- [Registration](https://emailcheckpro.com/register): Account registration and API-key access.
+- [Pricing](https://emailcheckpro.com/pricing): Current product pricing.
+
+## Product facts
+- Brand: EmailCheckPro.
+- Product code: email_batch.
+- Mode: asynchronous bulk task.
+- API base URL: https://emailcheckpro.com.
+- Authentication: X-API-Key request header.
+- Submit: POST /api/v1/bulk-tasks with product=email_batch and a file field.
+- Poll: GET /api/v1/bulk-tasks/{id}; status is processing, success or failed.
+- Poll interval: no more than once every 30 seconds.
+- Task size: 1000 to 100000 entries, .txt or .csv, one email address per line.
+- Input kind: email.
+- Country: not applicable, the field is not sent.
+- Result columns: email, activated, result, reason.
+- Billing: the file is reserved on submit; only checked entries are charged and the rest is returned. Failed tasks are refunded.
+- Examples: Python, Node.js, Go, Java, C#, PHP, Shell.

@@ -1,0 +1,72 @@
+{
+  "name": "Email Bulk Deliverability Check",
+  "brand": "EmailCheckPro",
+  "repository": "emailcheckpro/email-bulk-deliverability-api",
+  "description": "Upload a whole file of addresses, find out which ones can receive mail, and download the result when it finishes.",
+  "official_site": "https://emailcheckpro.com",
+  "landing_page": "https://emailcheckpro.com/products/email_batch",
+  "canonical_docs": "https://emailcheckpro.com/api-docs",
+  "base_url": "https://emailcheckpro.com",
+  "auth": {
+    "type": "api_key",
+    "header": "X-API-Key"
+  },
+  "mode": "async-bulk",
+  "product": "email_batch",
+  "identifier_kind": "email",
+  "requires_country": false,
+  "endpoints": {
+    "submit": {
+      "method": "POST",
+      "path": "/api/v1/bulk-tasks"
+    },
+    "status": {
+      "method": "GET",
+      "path": "/api/v1/bulk-tasks/{id}"
+    },
+    "balance": {
+      "method": "GET",
+      "path": "/api/v1/balance"
+    }
+  },
+  "limits": {
+    "min_items": 1000,
+    "max_items": 100000,
+    "poll_interval_seconds": 30,
+    "file_formats": [
+      "txt",
+      "csv"
+    ]
+  },
+  "result_fields": [
+    {
+      "name": "email",
+      "example": "alex.kim@example.com",
+      "description": "The submitted address."
+    },
+    {
+      "name": "activated",
+      "example": "yes",
+      "description": "Whether the address is deliverable — whether it can receive mail."
+    },
+    {
+      "name": "result",
+      "example": "deliverable",
+      "description": "Deliverability outcome, e.g. `deliverable`. The value passes through from the verification engine."
+    },
+    {
+      "name": "reason",
+      "example": "accepted_email",
+      "description": "Why that outcome was reached, e.g. `accepted_email`. The value passes through from the verification engine."
+    }
+  ],
+  "statuses": [
+    "processing",
+    "success",
+    "failed"
+  ],
+  "pricing_url": "https://emailcheckpro.com/pricing",
+  "maintainer": "EmailCheckPro",
+  "license": "MIT",
+  "last_reviewed": "2026-09-22"
+}
