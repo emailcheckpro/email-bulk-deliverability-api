@@ -9,16 +9,20 @@ import (
 	"os"
 )
 
-// 提交一个 email_batch 任务，然后查询一次状态。真实集成请把查询放进循环，间隔不短于 30 秒。
+// Submit once. Query the returned task ID separately, no more often than every 30 seconds.
 func main() {
 	key := os.Getenv("EMAILCHECKPRO_API_KEY")
 	if key == "" {
 		panic("Set EMAILCHECKPRO_API_KEY")
 	}
+	baseURL := os.Getenv("API_BASE_URL")
+	if baseURL == "" {
+		baseURL = "https://emailcheckpro.com"
+	}
 	var buf bytes.Buffer
 	mw := multipart.NewWriter(&buf)
-	_ = mw.WriteField("product", "email_batch")
-	f, err := os.Open("emails.txt")
+	_ = mw.WriteField("service_type", "email_batch")
+	f, err := os.Open("examples/emails.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -29,7 +33,7 @@ func main() {
 	}
 	mw.Close()
 
-	req, _ := http.NewRequest("POST", "https://emailcheckpro.com/api/v1/bulk-tasks", &buf)
+	req, _ := http.NewRequest("POST", baseURL+"/api/v1/bulk-tasks", &buf)
 	req.Header.Set("X-API-Key", key)
 	req.Header.Set("Content-Type", mw.FormDataContentType())
 	r, e := http.DefaultClient.Do(req)

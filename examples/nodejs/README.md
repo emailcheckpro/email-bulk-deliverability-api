@@ -1,10 +1,16 @@
-# nodejs
+# nodejs example
 
-From `examples/` (so `emails.txt` is alongside):
+Node.js 18 or newer, with built-in fetch and FormData.
 
-    export EMAILCHECKPRO_API_KEY="YOUR_API_KEY"
-    node ../nodejs/bulk_task.js
+Run **from the repository root**:
 
-Polling must not be more frequent than once every 30 seconds.
+```bash
+export EMAILCHECKPRO_API_KEY="YOUR_API_KEY"
+node examples/nodejs/bulk_task.js
+```
 
-See [the main README](../../README.md) for the full `email_batch` contract.
+Submit once, then poll the same ID at least 30 seconds apart. Prints result metadata and its download URL; does not download the archive automatically.
+
+For Python, Node.js, PHP and Shell, set `FILE=/path/to/your/list.txt` to choose an authorized input file. The bundled `examples/emails.txt` only illustrates the input format and does not meet the production minimum. Go reads that path directly; replace it with an authorized file before use. See the [main README](../../README.md) for `email_batch` limits and billing. Never submit fixture identifiers to production.
+
+The request uses `service_type=email_batch`. For phone tasks, send `country` before `file`; email and username tasks do not require it. `API_BASE_URL` can select a trusted local mock endpoint.

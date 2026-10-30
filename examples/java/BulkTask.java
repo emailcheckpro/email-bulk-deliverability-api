@@ -8,9 +8,10 @@ public class BulkTask {
     public static void main(String[] args) throws Exception {
         String apiKey = System.getenv("EMAILCHECKPRO_API_KEY");
         if (apiKey == null) throw new IllegalStateException("Set EMAILCHECKPRO_API_KEY");
+        String baseUrl = System.getenv().getOrDefault("API_BASE_URL", "https://emailcheckpro.com");
         String taskId = args.length > 0 ? args[0] : System.getenv("TASK_ID");
         if (taskId == null) throw new IllegalStateException("Pass a task id");
-        HttpRequest request = HttpRequest.newBuilder(URI.create("https://emailcheckpro.com/api/v1/bulk-tasks/" + taskId))
+        HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/api/v1/bulk-tasks/" + taskId))
             .header("X-API-Key", apiKey)
             .GET()
             .build();

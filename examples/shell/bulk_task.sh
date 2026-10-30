@@ -1,19 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 : "${EMAILCHECKPRO_API_KEY:?Set EMAILCHECKPRO_API_KEY}"
-PRODUCT="${PRODUCT:-email_batch}"
-FILE="${FILE:-emails.txt}"
-
-task=$(curl -fsS -X POST 'https://emailcheckpro.com/api/v1/bulk-tasks' \
-  -H "X-API-Key: $EMAILCHECKPRO_API_KEY" \
-  -F "product=$PRODUCT" -F "file=@$FILE")
+API_BASE_URL="${API_BASE_URL:-https://emailcheckpro.com}"
+API_BASE_URL="${API_BASE_URL%/}"
+FILE="${FILE:-examples/emails.txt}"
+headers=(-H "X-API-Key: $EMAILCHECKPRO_API_KEY")
+if [[ -n "${IDEMPOTENCY_KEY:-}" ]]; then
+  headers+=(-H "Idempotency-Key: $IDEMPOTENCY_KEY")
+fi
+task=$(curl -fsS --max-time 180 -X POST "$API_BASE_URL/api/v1/bulk-tasks" \
+  "${headers[@]}" \
+  -F 'service_type=email_batch' \
+  -F "file=@$FILE")
 echo "$task"
-id=$(printf '%s' "$task" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')
+id=$(printf '%s' "$task" | python3 -c 'import json,sys; p=json.load(sys.stdin); sys.exit(str(p)) if p.get("code")!=0 else None; print(p["data"]["id"])')
 
-# 轮询间隔不得短于 30 秒，这是服务端的契约而不是建议。
 while true; do
   sleep 30
-  body=$(curl -fsS "https://emailcheckpro.com/api/v1/bulk-tasks/$id" -H "X-API-Key: $EMAILCHECKPRO_API_KEY")
+  body=$(curl -fsS --max-time 60 "$API_BASE_URL/api/v1/bulk-tasks/$id" -H "X-API-Key: $EMAILCHECKPRO_API_KEY")
   echo "$body"
-  printf '%s' "$body" | grep -q '"status":"processing"' || break
+  status=$(printf '%s' "$body" | python3 -c 'import json,sys; p=json.load(sys.stdin); sys.exit(str(p)) if p.get("code")!=0 else None; d=p["data"]; print("ready" if d["status"]=="success" and d.get("result_url") else d["status"])')
+  if [[ "$status" == failed ]]; then
+    echo 'Task failed; inspect reason/reason_detail above.' >&2
+    exit 1
+  fi
+  [[ "$status" == ready ]] && break
 done

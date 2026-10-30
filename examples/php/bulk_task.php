@@ -3,14 +3,15 @@ $key = getenv('EMAILCHECKPRO_API_KEY');
 if (!$key) {
     throw new Exception('Set EMAILCHECKPRO_API_KEY');
 }
-$curl = curl_init('https://emailcheckpro.com/api/v1/bulk-tasks');
+$base = rtrim(getenv('API_BASE_URL') ?: 'https://emailcheckpro.com', '/');
+$curl = curl_init($base.'/api/v1/bulk-tasks');
 curl_setopt_array($curl, [
     CURLOPT_POST => true,
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_HTTPHEADER => ['X-API-Key: '.$key],
     CURLOPT_POSTFIELDS => [
-        'product' => 'email_batch',
-        'file' => new CURLFile('emails.txt'),
+        'service_type' => 'email_batch',
+        'file' => new CURLFile(getenv('FILE') ?: 'examples/emails.txt'),
     ],
 ]);
 $response = curl_exec($curl);

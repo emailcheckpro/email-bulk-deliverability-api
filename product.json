@@ -1,5 +1,5 @@
 {
-  "name": "Email Bulk Deliverability Check",
+  "name": "Email bulk deliverability check",
   "brand": "EmailCheckPro",
   "repository": "emailcheckpro/email-bulk-deliverability-api",
   "description": "Upload a whole file of addresses, find out which ones can receive mail, and download the result when it finishes.",
@@ -31,7 +31,7 @@
   },
   "limits": {
     "min_items": 1000,
-    "max_items": 100000,
+    "max_items": 500000,
     "poll_interval_seconds": 30,
     "file_formats": [
       "txt",
@@ -40,24 +40,14 @@
   },
   "result_fields": [
     {
-      "name": "email",
+      "name": "identifier",
       "example": "alex.kim@example.com",
-      "description": "The submitted address."
+      "description": "Submitted identifier, used to join the result to the input. Phone identifiers include their country code."
     },
     {
       "name": "activated",
-      "example": "yes",
-      "description": "Whether the address is deliverable — whether it can receive mail."
-    },
-    {
-      "name": "result",
-      "example": "deliverable",
-      "description": "Deliverability outcome, e.g. `deliverable`. The value passes through from the verification engine."
-    },
-    {
-      "name": "reason",
-      "example": "accepted_email",
-      "description": "Why that outcome was reached, e.g. `accepted_email`. The value passes through from the verification engine."
+      "example": "true",
+      "description": "The determined positive/negative signal for this product; interpret it in the product context."
     }
   ],
   "statuses": [
@@ -68,5 +58,5 @@
   "pricing_url": "https://emailcheckpro.com/pricing",
   "maintainer": "EmailCheckPro",
   "license": "MIT",
-  "last_reviewed": "2026-09-22"
+  "last_reviewed": "2026-10-30"
 }

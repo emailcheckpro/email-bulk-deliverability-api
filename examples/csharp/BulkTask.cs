@@ -9,11 +9,12 @@ class BulkTask
     {
         var apiKey = Environment.GetEnvironmentVariable("EMAILCHECKPRO_API_KEY")
             ?? throw new Exception("Set EMAILCHECKPRO_API_KEY");
+        var baseUrl = Environment.GetEnvironmentVariable("API_BASE_URL") ?? "https://emailcheckpro.com";
         var taskId = args.Length > 0 ? args[0] : Environment.GetEnvironmentVariable("TASK_ID")
             ?? throw new Exception("Pass a task id");
         using var client = new HttpClient();
         client.DefaultRequestHeaders.Add("X-API-Key", apiKey);
-        var response = await client.GetAsync($"https://emailcheckpro.com/api/v1/bulk-tasks/{taskId}");
+        var response = await client.GetAsync($"{baseUrl}/api/v1/bulk-tasks/{taskId}");
         var body = await response.Content.ReadAsStringAsync();
         response.EnsureSuccessStatusCode();
         Console.WriteLine(body);

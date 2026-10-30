@@ -1,99 +1,103 @@
-# Email Bulk Deliverability Check — `email_batch` | EmailCheckPro
+# Email bulk deliverability check — official API examples | EmailCheckPro
 
-Bulk deliverability check is built for lists from a thousand addresses upward: upload a file, the task runs in the background, and you download a result archive when it completes. Any domain is accepted in the same file — there is no provider to choose.
+Upload a whole file of addresses, find out which ones can receive mail, and download the result when it finishes.
 
-This is the official EmailCheckPro example repository for **one** bulk product, `email_batch`. It is an asynchronous task: upload a file, get a task id immediately, poll the task, and download the result file when it finishes.
+This repository covers the **asynchronous, file-based** product `email_batch`. Submit a file, keep the returned task ID, poll it, then use the result URL after success. It is separate from synchronous `/api/v1/check` and `/api/v1/batch-check` integrations.
 
-- **Product page:** https://emailcheckpro.com/products/email_batch
+- **Product:** https://emailcheckpro.com/products/email_batch
 - **API documentation:** https://emailcheckpro.com/api-docs
 - **API base URL:** `https://emailcheckpro.com`
 - **Authentication:** `X-API-Key`
-- **Get an API key:** https://emailcheckpro.com/register
+- **Get an API key:** https://emailcheckpro.com/register?utm_source=github&utm_medium=referral&utm_campaign=emailcheckpro_email-bulk-deliverability-api
 
-## What is it usually used for?
-
+## Typical uses
 - List cleaning
 - Database hygiene
 - Periodic re-checks
 
-## What does the result file contain?
+## Submit an authorized list
 
-| Column | Example | Meaning |
-|---|---|---|
-| `email` | `alex.kim@example.com` | The submitted address. |
-| `activated` | `yes` | Whether the address is deliverable — whether it can receive mail. |
-| `result` | `deliverable` | Deliverability outcome, e.g. `deliverable`. The value passes through from the verification engine. |
-| `reason` | `accepted_email` | Why that outcome was reached, e.g. `accepted_email`. The value passes through from the verification engine. |
+Upload a `.txt` or one-column `.csv` file with **1,000–500,000 valid email entries**. Use one email per line. This product does not require a `country` field.
 
-The result is a **point-in-time signal**, not a verdict, and not identity data. It describes what the provider reported at the moment the task ran.
-
-## How do I submit a task?
-
-Upload a `.txt` or `.csv` with **one email address per line**, 1,000–100,000 valid entries. There is **no country** on email tasks: do not send the `country` field.
+Send `service_type` and, for phone products, `country` **before `file`** in the multipart body. The request field is `service_type`; the response still calls the selected product `data.product`.
 
 ```bash
 curl -X POST 'https://emailcheckpro.com/api/v1/bulk-tasks' \
   -H 'X-API-Key: YOUR_API_KEY' \
-  -F 'product=email_batch' \
+  -F 'service_type=email_batch' \
   -F 'file=@emails.txt'
 ```
 
-The response returns the task id and `status=processing`, along with the server-side quote taken before processing starts.
+For a retry of the same submission, use the same previously chosen `Idempotency-Key` header (up to 128 characters). Do not automatically resubmit after a timeout: the original request may already have created a task.
 
-## How do I poll a task and download the result?
+The included `emails.txt` is a tiny **format fixture**, not a production-sized list. Supply an authorized file that meets the product minimum; do not pad it with duplicates or invented identifiers. Example clients accept `FILE` to select your file.
+
+## Poll the same task and obtain results
 
 ```bash
-curl -fsS 'https://emailcheckpro.com/api/v1/bulk-tasks/TASK_ID' -H 'X-API-Key: YOUR_API_KEY'
+curl -fsS 'https://emailcheckpro.com/api/v1/bulk-tasks/TASK_ID' \
+  -H 'X-API-Key: YOUR_API_KEY'
 ```
 
-`status` is `processing`, `success` or `failed` — there is no progress percentage to poll for. **Do not poll more often than once every 30 seconds.** When the task succeeds the response carries the result-file download link.
+Read the `code`, then `data.status`. Poll **no more often than once every 30 seconds**:
 
-## Bulk task or realtime check?
+- `processing`: keep the task ID and wait. `preparing=true` means input preprocessing is not complete; `total` is preliminary.
+- `success`: final `success_cnt` and `failure_cnt` are available. Use `result_url` to download the result. If the link is temporarily absent, query this task again after 30 seconds; do not submit a replacement task.
+- `failed`: report `reason` / `reason_detail` and stop polling. An HTTP 200 containing `data.status=failed` is a failed task.
 
-`POST /api/v1/bulk-tasks` (this repository) takes a file of 1,000–100,000 entries and answers later — that is the shape for list cleaning, campaign preparation and enrichment runs. A **realtime** check (`POST /api/v1/check`, or `POST /api/v1/batch-check` for up to 100 identifiers) answers inside the same HTTP response, for a signup form or a live lookup. The two are separate endpoints and are not interchangeable; see the other repositories under [emailcheckpro](https://github.com/emailcheckpro).
+The API does not return a progress percentage or pricing/reservation quote. Request fields, response fields, and examples are specified in [openapi.yaml](openapi.yaml).
 
-## What about billing?
+## Exported result fields
 
-The whole file is reserved on submit. When the task finishes you are charged only for the entries that were actually checked and the remainder is returned. A failed task is refunded in full.
+The current brand-side export uses these columns, in this order. Preserve their names when parsing the result; do not substitute upstream CSV headers.
 
-## What are the limits and error codes?
+| Column | Example | Meaning |
+|---|---|---|
+| `identifier` | `alex.kim@example.com` | Submitted identifier, used to join the result to the input. Phone identifiers include their country code. |
+| `activated` | `true` | The determined positive/negative signal for this product; interpret it in the product context. |
 
-| Limit | Value |
+These are point-in-time product signals. Empty or unknown values are not proof of a negative fact; avatar attributes are image-derived estimates, not verified facts about a person.
+
+## Limits, billing and errors
+
+| Contract | Value |
 |---|---|
-| Entries per task | 1,000–100,000 |
-| File formats | `.txt`, `.csv`, one entry per line |
-| Products per task | 1 (`email_batch`) |
-| Country | not applicable — omit the field |
-| Poll interval | no more than once per 30 seconds |
+| `service_type` | `email_batch` |
+| Input | `email` |
+| Valid entries per task | 1,000–500,000 |
+| Country | Not required |
+| Poll interval | At least 30 seconds |
+| File formats | `.txt`, one-column `.csv` |
 
-`40000`/`40001` are request or file errors; `40100` is an invalid key; `40200` is insufficient balance; `42900` is rate limited — honour `Retry-After`; `50300` is temporary maintenance. `GET /api/v1/balance` returns the current balance in `data.balance_micros`.
+The input amount is reserved on submission. Settlement charges checked entries and returns the remainder; failed tasks are refunded. See [current pricing](https://emailcheckpro.com/pricing) rather than assuming a fixed price. `GET /api/v1/balance` returns USD micros in `data.balance_micros`.
 
-Keep the key on a trusted server and read it from `EMAILCHECKPRO_API_KEY`. Never commit it or expose it in production browser code.
+`40000`/`40001` cover invalid requests or inputs; `40100` is an invalid key; `40200` is insufficient balance; `42900`/`42901` are rate/concurrency limits; `50300` is temporary maintenance. Honor `Retry-After`. Do not treat a request error or undetermined item as a determined negative result.
 
-## Runnable examples in seven languages
+## Language examples
 
-| Language | Example |
-|---|---|
-| Python | [`examples/python`](examples/python) |
-| Node.js | [`examples/nodejs`](examples/nodejs) |
-| Go | [`examples/go`](examples/go) |
-| Java | [`examples/java`](examples/java) |
-| C# | [`examples/csharp`](examples/csharp) |
-| PHP | [`examples/php`](examples/php) |
-| Shell / curl | [`examples/shell`](examples/shell) |
+Run from the repository root; use the commands and prerequisites in each language README.
 
-## Official resources and responsible use
+| Language | Example | Coverage |
+|---|---|---|
+| Python | [examples/python](examples/python) | Submit and poll; print result metadata / URL |
+| Node.js | [examples/nodejs](examples/nodejs) | Submit and poll; print result metadata / URL |
+| Shell | [examples/shell](examples/shell) | Submit and poll; print result metadata / URL |
+| Go | [examples/go](examples/go) | Submit; prints the task ID in its JSON response |
+| PHP | [examples/php](examples/php) | Submit; prints the task ID in its JSON response |
+| Java | [examples/java](examples/java) | Query one existing task ID |
+| C# | [examples/csharp](examples/csharp) | Query one existing task ID |
 
-- **This product:** https://emailcheckpro.com/products/email_batch
-- **All products:** https://emailcheckpro.com/products
-- **Documentation:** https://emailcheckpro.com/api-docs
-- **Registration:** https://emailcheckpro.com/register
-- **Pricing:** https://emailcheckpro.com/pricing
-- **OpenAPI contract:** [`openapi.yaml`](openapi.yaml)
-- **License:** [MIT](LICENSE) for the sample code
+Read the key from `EMAILCHECKPRO_API_KEY` on a trusted server. `API_BASE_URL` is available for a trusted development/mock endpoint; never send a production key to an untrusted override. Do not expose keys in browser code or commit them.
 
-Submit only data you are authorized to process, and comply with applicable privacy laws and platform terms. Report the signal you received as a signal; do not relabel it downstream as a conclusion it does not support.
+## Official resources
 
----
+- Product: https://emailcheckpro.com/products/email_batch
+- Documentation: https://emailcheckpro.com/api-docs
+- Registration: https://emailcheckpro.com/register?utm_source=github&utm_medium=referral&utm_campaign=emailcheckpro_email-bulk-deliverability-api
+- Pricing: https://emailcheckpro.com/pricing
+- OpenAPI: [openapi.yaml](openapi.yaml)
+- Sample code license: [MIT](LICENSE)
 
-*Last reviewed: 2026-09-22 · Maintained by EmailCheckPro. Canonical documentation: https://emailcheckpro.com/api-docs*
+Process only identifiers you are authorized to use. Third-party trademarks do not imply affiliation or endorsement.
+
+*Last reviewed: 2026-10-30 · Maintained by EmailCheckPro.*
